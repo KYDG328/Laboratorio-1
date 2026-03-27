@@ -108,7 +108,7 @@ class Course:
     @staticmethod
     def calculate_satisfaction(rating: float, positive_reviews: int, neutral_reviews: int,
                                negative_reviews: int, num_reviews: int) -> float:
-                                   """
+        """
         Calcula el nivel de satisfacción del curso usando
         la fórmula especificada en la rúbrica:
 
@@ -599,7 +599,7 @@ class CourseRepository:
         "created", "last_update_date", "duration", "instructors_id", "image",
         "positive_reviews", "negative_reviews", "neutral_reviews"
     }
-"""
+    """
     Repositorio que carga y accede al dataset CSV.
     """
 
