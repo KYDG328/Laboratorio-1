@@ -1,4 +1,26 @@
-
+# 
+# LABORATORIO 1 - ÁRBOL AVL CON DATASET DE CURSOS UDEMY
+# 
+# Integrantes:
+# - Ricardo Ramos
+# - Francisco Cuello
+# - Keinerth De la Hoz
+#
+# Descripción:
+# Este programa implementa un Árbol AVL que almacena cursos
+# del dataset de Udemy, utilizando como indicador princiapl el nivel de
+# satisfacción del curso.
+#
+# El árbol se auto-balancea después de cada inserción o
+# eliminación, garantizando eficiencia en las operaciones.
+#
+# Funcionalidades principales:
+# - Insertar, eliminar y buscar nodos
+# - Filtros según condiciones de la rúbrica
+# - Recorrido por niveles
+# - Obtención de relaciones (padre, abuelo, tío)
+# - Visualización del árbol con Graphviz
+# 
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -18,8 +40,22 @@ except Exception:
 
 
 class Utils:
+    """
+    Clase de utilidades que contiene funciones auxiliares
+    para el manejo de datos como redondeo y fechas.
+    """
     @staticmethod
     def round5(value: float) -> float:
+        """
+        Redondea un número a 5 cifras decimales, tal como
+        lo exige la rúbrica del laboratorio.
+
+        Parámetro:
+        value (float): número a redondear
+
+        Retorna:
+        float: número redondeado
+        """
         return float(Decimal(str(value)).quantize(Decimal("0.00001"), rounding=ROUND_HALF_UP))
 
     @staticmethod
@@ -46,6 +82,13 @@ class Utils:
 
 @dataclass
 class Course:
+    """
+    Representa un curso del dataset.
+
+    Cada objeto Course almacena toda la información relevante
+    y calcula su nivel de satisfacción, que será utilizado
+    como clave en el árbol AVL.
+    """
     id: int
     title: str
     url: str
@@ -65,6 +108,18 @@ class Course:
     @staticmethod
     def calculate_satisfaction(rating: float, positive_reviews: int, neutral_reviews: int,
                                negative_reviews: int, num_reviews: int) -> float:
+                                   """
+        Calcula el nivel de satisfacción del curso usando
+        la fórmula especificada en la rúbrica:
+
+        satisfaction = rating * 0.7 + componente_reviews * 0.3
+
+        Donde:
+        componente_reviews = (5*positivas + 3*neutrales + negativas) / total_reviews
+
+        Retorna:
+        float: nivel de satisfacción redondeado a 5 decimales
+        """
         if num_reviews <= 0:
             review_component = 0.0
         else:
@@ -100,16 +155,36 @@ class Course:
         )
 
     def key(self) -> tuple[float, int]:
+        """
+        Clave de ordenamiento del árbol AVL.
+        Se usa la tupla (satisfaction, id) para mantener el orden
+        y garantizar que no haya duplicados de ID.
+        """
         return (self.satisfaction, self.id)
 
     def summary(self) -> str:
+        """
+        Retorna un resumen corto del curso para mostrar
+        en la lista de resultados de la interfaz gráfica.
+        """
         return f"ID: {self.id} | Satisfaction: {self.satisfaction:.5f} | {self.title}"
 
     def to_dict(self) -> dict:
+        """
+        Convierte el objeto Course en un diccionario.
+        Se utiliza para mostrar toda la información del curso
+        cuando se selecciona un nodo en la interfaz.
+        """
         return self.__dict__.copy()
 
 
 class AVLNode:
+    """
+    Nodo del árbol AVL.
+
+    Cada nodo almacena un Course y mantiene la altura
+    para realizar el balanceo automático.
+    """
     def __init__(self, course: Course):
         self.course = course
         self.left: Optional["AVLNode"] = None
@@ -118,6 +193,15 @@ class AVLNode:
 
 
 class AVLCourseTree:
+    """
+    Implementación de un Árbol AVL.
+
+    Este árbol se mantiene balanceado automáticamente
+    después de cada operación de inserción o eliminación.
+
+    La clave de ordenamiento es:
+    (satisfaction, id)
+    """
     def __init__(self):
         self.root: Optional[AVLNode] = None
         self.size = 0
@@ -132,6 +216,15 @@ class AVLCourseTree:
         node.height = 1 + max(self.height(node.left), self.height(node.right))
 
     def rotate_right(self, y: AVLNode) -> AVLNode:
+        """
+        Realiza una rotación simple a la derecha.
+
+        Se utiliza cuando el árbol está desbalanceado
+        hacia la izquierda (caso LL).
+
+        Retorna:
+        AVLNode: nueva raíz del subárbol
+        """
         x = y.left
         t2 = x.right if x else None
         x.right = y
@@ -141,6 +234,12 @@ class AVLCourseTree:
         return x
 
     def rotate_left(self, x: AVLNode) -> AVLNode:
+        """
+        Realiza una rotación simple a la izquierda.
+
+        Se utiliza cuando el árbol está desbalanceado
+        hacia la derecha (caso RR).
+        """
         y = x.right
         t2 = y.left if y else None
         y.left = x
@@ -150,6 +249,15 @@ class AVLCourseTree:
         return y
 
     def rebalance(self, node: AVLNode) -> AVLNode:
+        """
+        Rebalancea el árbol verificando el factor de balanceo.
+
+        Casos:
+        - LL → rotación derecha
+        - RR → rotación izquierda
+        - LR → rotación izquierda + derecha
+        - RL → rotación derecha + izquierda
+        """
         self.update_height(node)
         bf = self.balance_factor(node)
         if bf > 1:
@@ -163,12 +271,22 @@ class AVLCourseTree:
         return node
 
     def insert(self, course: Course) -> None:
+        """
+        Inserta un curso en el árbol AVL.
+
+        Verifica que no exista otro curso con el mismo ID.
+        Luego inserta recursivamente y rebalancea el árbol.
+        """
         if self.search_by_id(course.id) is not None:
             raise ValueError(f"Ya existe un curso con id {course.id} en el árbol.")
         self.root = self._insert(self.root, course)
         self.size += 1
 
     def _insert(self, node: Optional[AVLNode], course: Course) -> AVLNode:
+        """
+        Función recursiva auxiliar para insertar un nodo.
+        (No se llama directamente desde fuera de la clase).
+        """
         if node is None:
             return AVLNode(course)
         if course.key() < node.course.key():
@@ -194,6 +312,9 @@ class AVLCourseTree:
         return True
 
     def _delete(self, node: Optional[AVLNode], key: tuple[float, int]) -> Optional[AVLNode]:
+        """
+        Función recursiva auxiliar para eliminar un nodo por su clave.
+        """
         if node is None:
             return None
         if key < node.course.key():
@@ -211,6 +332,9 @@ class AVLCourseTree:
         return self.rebalance(node)
 
     def _min_node(self, node: AVLNode) -> AVLNode:
+        """
+        Retorna el nodo con la clave mínima del subárbol (usado en eliminación).
+        """
         current = node
         while current.left is not None:
             current = current.left
@@ -220,6 +344,9 @@ class AVLCourseTree:
         return self._search_by_id(self.root, course_id)
 
     def _search_by_id(self, node: Optional[AVLNode], course_id: int) -> Optional[Course]:
+        """
+        Búsqueda recursiva de un curso por ID.
+        """
         if node is None:
             return None
         if node.course.id == course_id:
@@ -233,6 +360,9 @@ class AVLCourseTree:
         return self._search_node_by_id(self.root, course_id)
 
     def _search_node_by_id(self, node: Optional[AVLNode], course_id: int) -> Optional[AVLNode]:
+        """
+        Búsqueda recursiva que retorna el nodo completo (usado para padre, abuelo, etc.).
+        """
         if node is None:
             return None
         if node.course.id == course_id:
@@ -249,6 +379,9 @@ class AVLCourseTree:
         return result
 
     def _search_by_satisfaction(self, node: Optional[AVLNode], target: float, result: List[Course]) -> None:
+        """
+        Búsqueda recursiva de todos los cursos con el mismo nivel de satisfacción.
+        """
         if node is None:
             return
         current = node.course.satisfaction
@@ -260,6 +393,9 @@ class AVLCourseTree:
             self._collect_same_satisfaction(node, target, result)
 
     def _collect_same_satisfaction(self, node: Optional[AVLNode], target: float, result: List[Course]) -> None:
+        """
+        Recolecta todos los nodos con exactamente el mismo valor de satisfaction.
+        """
         if node is None:
             return
         if node.course.satisfaction == target:
@@ -277,6 +413,9 @@ class AVLCourseTree:
         return result
 
     def _inorder(self, node: Optional[AVLNode], result: List[Course]) -> None:
+        """
+        Recorrido inorder recursivo (usado internamente por inorder()).
+        """
         if node is None:
             return
         self._inorder(node.left, result)
@@ -293,6 +432,9 @@ class AVLCourseTree:
         return levels
 
     def _collect_level(self, node: Optional[AVLNode], level: int, result: List[int]) -> None:
+        """
+        Función recursiva auxiliar para recolectar los IDs de un nivel específico.
+        """
         if node is None:
             return
         if level == 1:
@@ -307,6 +449,9 @@ class AVLCourseTree:
         return result
 
     def _filter_recursive(self, node: Optional[AVLNode], predicate: Callable[[Course], bool], result: List[Course]) -> None:
+        """
+        Función recursiva auxiliar para aplicar cualquier filtro.
+        """
         if node is None:
             return
         self._filter_recursive(node.left, predicate, result)
@@ -315,9 +460,18 @@ class AVLCourseTree:
         self._filter_recursive(node.right, predicate, result)
 
     def filter_positive_greater_than_negative_plus_neutral(self) -> List[Course]:
+        """
+        Filtro A:
+        Retorna cursos donde las reseñas positivas
+        son mayores que la suma de negativas y neutrales.
+        """
         return self.filter_courses(lambda c: c.positive_reviews > (c.negative_reviews + c.neutral_reviews))
 
     def filter_created_after(self, date_value: Any) -> List[Course]:
+        """
+        Filtro B:
+        Retorna cursos creados después de una fecha dada.
+        """
         target = Utils.parse_date(date_value)
         if target is None:
             raise ValueError("Fecha inválida.")
@@ -345,6 +499,9 @@ class AVLCourseTree:
         return self._get_level(self.root, course_id, 0)
 
     def _get_level(self, node: Optional[AVLNode], course_id: int, level: int) -> int:
+        """
+        Calcula el nivel del nodo de forma recursiva.
+        """
         if node is None:
             return -1
         if node.course.id == course_id:
@@ -361,9 +518,15 @@ class AVLCourseTree:
         return self.balance_factor(node)
 
     def find_parent(self, course_id: int) -> Optional[Course]:
+        """
+        Encuentra el nodo padre de un curso de forma recursiva.
+        """
         return self._find_parent(self.root, course_id)
 
     def _find_parent(self, node: Optional[AVLNode], course_id: int) -> Optional[Course]:
+        """
+        Función recursiva auxiliar para encontrar el padre de un nodo.
+        """
         if node is None:
             return None
         if node.left and node.left.course.id == course_id:
@@ -382,6 +545,9 @@ class AVLCourseTree:
         return self.find_parent(parent.id)
 
     def find_uncle(self, course_id: int) -> Optional[Course]:
+        """
+        Encuentra el tío de un nodo utilizando su abuelo.
+        """
         parent = self.find_parent(course_id)
         if parent is None:
             return None
@@ -409,6 +575,9 @@ class AVLCourseTree:
         return dot.render(output_name, format="png", cleanup=True)
 
     def _add_graphviz_nodes(self, dot: Digraph, node: Optional[AVLNode]) -> None:
+        """
+        Función recursiva que construye el gráfico Graphviz del árbol.
+        """
         if node is None:
             return
         node_id = str(node.course.id)
@@ -430,6 +599,9 @@ class CourseRepository:
         "created", "last_update_date", "duration", "instructors_id", "image",
         "positive_reviews", "negative_reviews", "neutral_reviews"
     }
+"""
+    Repositorio que carga y accede al dataset CSV.
+    """
 
     def __init__(self, csv_path: str):
         self.df = self.load_dataframe(csv_path)
@@ -450,6 +622,16 @@ class CourseRepository:
 
 
 class AVLApp(tk.Tk):
+    """
+    Interfaz gráfica del sistema.
+
+    Permite interactuar con el árbol AVL mediante:
+    - Inserciones
+    - Eliminaciones
+    - Búsquedas
+    - Filtros
+    - Visualización del árbol
+    """
     def __init__(self, csv_path: str):
         super().__init__()
         self.title("Laboratorio AVL - Cursos Udemy")
@@ -612,6 +794,10 @@ class AVLApp(tk.Tk):
         self._set_status(f"Imagen generada: {path}")
 
     def insert_by_id(self):
+        """
+        Operación 1 de la rúbrica: Insertar un nodo mediante el ID.
+        Carga el curso del CSV, lo inserta en el AVL y genera la imagen.
+        """
         try:
             course_id = int(self.id_entry.get().strip())
             course = self.repository.find_course_by_id(course_id)
@@ -627,6 +813,9 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", str(e))
 
     def delete_by_id(self):
+        """
+        Operación 2 de la rúbrica: Eliminar un nodo utilizando el ID.
+        """
         try:
             course_id = int(self.id_entry.get().strip())
             if not self.tree.delete_by_id(course_id):
@@ -639,6 +828,9 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", "Ingresa un ID válido.")
 
     def delete_by_satisfaction(self):
+        """
+        Operación 2 de la rúbrica: Eliminar un nodo utilizando el nivel de satisfacción.
+        """
         try:
             satisfaction = float(self.sat_entry.get().strip())
             if not self.tree.delete_by_satisfaction(satisfaction):
@@ -651,6 +843,9 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", "Ingresa un satisfaction válido.")
 
     def search_by_id(self):
+        """
+        Operación 3 de la rúbrica: Buscar un nodo utilizando el ID.
+        """
         try:
             course_id = int(self.id_entry.get().strip())
             course = self.tree.search_by_id(course_id)
@@ -664,6 +859,9 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", "Ingresa un ID válido.")
 
     def search_by_satisfaction(self):
+        """
+        Operación 3 de la rúbrica: Buscar un nodo utilizando el nivel de satisfacción.
+        """
         try:
             satisfaction = float(self.sat_entry.get().strip())
             results = self.tree.search_by_satisfaction(satisfaction)
@@ -676,11 +874,17 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", "Ingresa un satisfaction válido.")
 
     def filter_a(self):
+        """
+        Filtro A de la rúbrica: positive_reviews > negative_reviews + neutral_reviews.
+        """
         results = self.tree.filter_positive_greater_than_negative_plus_neutral()
         self._update_results(results)
         self._show_details("Filtro A aplicado. Selecciona un curso de la lista.")
 
     def filter_b(self):
+        """
+        Filtro B de la rúbrica: cursos creados después de una fecha dada.
+        """
         try:
             results = self.tree.filter_created_after(self.date_entry.get().strip())
             self._update_results(results)
@@ -689,6 +893,9 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", str(e))
 
     def filter_c(self):
+        """
+        Filtro C de la rúbrica: cantidad de clases dentro de un rango dado.
+        """
         try:
             minimum = int(self.min_lect_entry.get().strip())
             maximum = int(self.max_lect_entry.get().strip())
@@ -699,6 +906,9 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", "Ingresa un rango válido de clases.")
 
     def filter_d(self):
+        """
+        Filtro D de la rúbrica: reseñas superiores al promedio de todos los nodos del árbol.
+        """
         try:
             results = self.tree.filter_reviews_above_average(self.review_type.get().strip())
             self._update_results(results)
@@ -707,6 +917,9 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", str(e))
 
     def show_levels(self):
+        """
+        Operación 5 de la rúbrica: Mostrar recorrido por niveles (recursivo).
+        """
         levels = self.tree.level_order_recursive()
         if not levels:
             self._show_details("El árbol está vacío.")
@@ -717,6 +930,10 @@ class AVLApp(tk.Tk):
         self._show_details("\n".join(lines))
 
     def on_select_result(self, event=None):
+        """
+        Al seleccionar un curso de la lista, muestra padre, abuelo, tío,
+        nivel, factor de balanceo y toda la información del nodo.
+        """
         selection = self.results_list.curselection()
         if not selection:
             return
@@ -725,6 +942,7 @@ class AVLApp(tk.Tk):
             self._show_course_details(self.last_results[idx])
 
     def export_manual_image(self):
+        """Genera manualmente la imagen del árbol AVL con Graphviz."""
         try:
             filename = f"arbol_manual_{self.step_counter + 1}"
             path = self.tree.export_graphviz(filename)
@@ -735,6 +953,7 @@ class AVLApp(tk.Tk):
             messagebox.showerror("Error", str(e))
 
     def refresh_image(self):
+        """Actualiza la imagen que se muestra en la interfaz gráfica."""
         if not self.current_image_path or not os.path.exists(self.current_image_path):
             self.image_label.configure(text="No hay imagen disponible todavía.", image="")
             self.current_photo = None
@@ -751,6 +970,7 @@ class AVLApp(tk.Tk):
             self.current_photo = None
 
     def clear_results(self):
+        """Limpia la lista de resultados y los detalles."""
         self.last_results = []
         self.results_list.delete(0, tk.END)
         self._show_details("")
